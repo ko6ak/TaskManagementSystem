@@ -4,3 +4,4 @@
 2. Перейти в папку с программой: `cd  /TaskManagementSystem`
 3. Запустить docker-образ (файл docker.yml находится в корне проекта): `docker compose -f docker.yml up`
 4. Собрать приложение: `mvn clean install`
+5. Swagger: `http://localhost:8080/swagger-ui/index.html`
