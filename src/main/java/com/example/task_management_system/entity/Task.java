@@ -27,11 +27,11 @@ public class Task {
     private Status status;
     @Enumerated(EnumType.STRING)
     private Priority priority;
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     private User author;
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     private User executor;
-    @OneToMany(mappedBy = "task", fetch = FetchType.EAGER)
+    @OneToMany(mappedBy = "task")
     private List<Comment> comments;
 
     public Task(String title, String description, Status status, Priority priority, User author, User executor) {

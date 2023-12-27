@@ -9,10 +9,10 @@ import org.mapstruct.factory.Mappers;
 import java.util.List;
 
 @Mapper
-public interface TaskResponseMapper {
-    TaskResponseMapper INSTANCE = Mappers.getMapper(TaskResponseMapper.class);
+public interface TaskWithUserInfoResponseMapper {
+    TaskWithUserInfoResponseMapper INSTANCE = Mappers.getMapper(TaskWithUserInfoResponseMapper.class);
 
-    List<TaskResponseDTO> map(List<Task> tasks);
+    List<TaskWithUserInfoResponseDTO> map(List<Task> tasks);
 
-    TaskResponseDTO taskToTaskResponseDTO(Task task);
+    TaskWithUserInfoResponseDTO taskToTaskWithUserInfoResponseDTO(Task task);
 }
