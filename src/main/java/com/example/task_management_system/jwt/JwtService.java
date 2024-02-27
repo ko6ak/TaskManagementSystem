@@ -49,7 +49,7 @@ public class JwtService {
 
             user = userRepository.findByEmail(claims.getSubject()).orElseThrow(() -> new EmailNotFoundException("User with this email not found."));
 
-            if (token.equals(user.getToken())) return user;
+            if (token.equals(user.getToken())) return user;  //сохранять токен в базу и сверять с полученным нет смысла, так как данные из токена могут быть прочтены только после применения секретного ключа, валидность по дате проверяется также при получении клаймов
             else throw new TokenException("Invalid token.");
 
         } catch (Exception e) {
