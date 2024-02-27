@@ -3,11 +3,14 @@ package com.example.task_management_system.controller;
 import com.example.task_management_system.dto.response.MessageResponseDTO;
 import com.example.task_management_system.dto.request.TaskRequestDTO;
 import com.example.task_management_system.dto.response.TaskResponseDTO;
+import com.example.task_management_system.dto.response.TaskWithUserInfoResponseDTO;
+import com.example.task_management_system.dto.response.TaskWithCommentsResponseDTO;
 import com.example.task_management_system.entity.Priority;
 import com.example.task_management_system.entity.Status;
 import com.example.task_management_system.entity.Task;
 import com.example.task_management_system.entity.User;
-import com.example.task_management_system.mapper.TaskResponseMapper;
+import com.example.task_management_system.mapper.TaskWithCommentsResponseMapper;
+import com.example.task_management_system.mapper.TaskWithUserInfoResponseMapper;
 import com.example.task_management_system.service.TaskService;
 import com.example.task_management_system.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -44,10 +47,16 @@ public class TaskController {
             summary = "Получение всех заданий.",
             description = "Доступно всем залогиненным пользователям.")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", content = { @Content(array = @ArraySchema(schema = @Schema(implementation = TaskResponseDTO.class)), mediaType = "application/json") }) })
+            @ApiResponse(responseCode = "200", content = { @Content(array = @ArraySchema(schema = @Schema(implementation = TaskWithUserInfoResponseDTO.class)), mediaType = "application/json") }) })
+    @GetMapping("/all-without-userinfo")
+    public ResponseEntity<Page<TaskResponseDTO>> getAllWithoutUserInfo(@RequestParam("page") int pageIndex,
+                                                                       @RequestParam("size") int pageSize){
+        return ResponseEntity.ok(taskService.getAllWithoutUserInfo(PageRequest.of(pageIndex, pageSize)));
+    }
+
     @GetMapping("/all")
-    public ResponseEntity<Page<TaskResponseDTO>> getAll(@RequestParam("page") int pageIndex,
-                                                        @RequestParam("size") int pageSize){
+    public ResponseEntity<Page<TaskWithUserInfoResponseDTO>> getAll(@RequestParam("page") int pageIndex,
+                                                                    @RequestParam("size") int pageSize){
         return ResponseEntity.ok(taskService.getAll(PageRequest.of(pageIndex, pageSize)));
     }
 
@@ -55,14 +64,22 @@ public class TaskController {
             summary = "Получение задания с указанным id.",
             description = "Доступно всем залогиненным пользователям.")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", content = { @Content(schema = @Schema(implementation = TaskResponseDTO.class), mediaType = "application/json") }),
+            @ApiResponse(responseCode = "200", content = { @Content(schema = @Schema(implementation = TaskWithUserInfoResponseDTO.class), mediaType = "application/json") }),
             @ApiResponse(responseCode = "404", content = { @Content(schema = @Schema(implementation = MessageResponseDTO.class), mediaType = "application/json") }) })
     @GetMapping("/get")
     public ResponseEntity<?> get(@RequestParam(name = "id") long id){
         Task task = taskService.get(id);
         if (task == null) return ResponseEntity.status(HttpServletResponse.SC_NOT_FOUND).body(new MessageResponseDTO(TASK_NOT_FOUND));
-        TaskResponseDTO taskResponseDTO = TaskResponseMapper.INSTANCE.taskToTaskResponseDTO(task);
-        return ResponseEntity.ok(taskResponseDTO);
+        TaskWithUserInfoResponseDTO taskWithUserInfoResponseDTO = TaskWithUserInfoResponseMapper.INSTANCE.taskToTaskWithUserInfoResponseDTO(task);
+        return ResponseEntity.ok(taskWithUserInfoResponseDTO);
+    }
+
+    @GetMapping("/get-with-comments")
+    public ResponseEntity<?> getWithComments(@RequestParam(name = "id") long id){
+        Task task = taskService.get(id);
+        if (task == null) return ResponseEntity.status(HttpServletResponse.SC_NOT_FOUND).body(new MessageResponseDTO(TASK_NOT_FOUND));
+        TaskWithCommentsResponseDTO taskWithCommentsResponseDTO = TaskWithCommentsResponseMapper.INSTANCE.taskToTaskWithCommentsResponseDTO(task);
+        return ResponseEntity.ok(taskWithCommentsResponseDTO);
     }
 
     @Operation(
@@ -70,13 +87,13 @@ public class TaskController {
             description = "Сохнанение нового задания или обновление существующего задания если пользователь является автором задания. " +
                     "Если пользователь является исполнителем, можно обновмть только статус.")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", content = { @Content(schema = @Schema(implementation = TaskResponseDTO.class), mediaType = "application/json") }),
+            @ApiResponse(responseCode = "200", content = { @Content(schema = @Schema(implementation = TaskWithUserInfoResponseDTO.class), mediaType = "application/json") }),
             @ApiResponse(responseCode = "400", content = { @Content(schema = @Schema(implementation = MessageResponseDTO.class), mediaType = "application/json") }) })
     @PostMapping("/save")
     public ResponseEntity<?> save(@RequestBody TaskRequestDTO taskRequestDTO) {
         Task task;
         User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        User executor = userService.get(taskRequestDTO.getExecutorId());
+        User executor = userService.getRef(taskRequestDTO.getExecutorId());
 
         if (taskRequestDTO.getId() > 0) {
             if (user.getId() == taskRequestDTO.getAuthorId()) {
@@ -92,12 +109,7 @@ public class TaskController {
                 return ResponseEntity.ok(new MessageResponseDTO(TASK_UPDATED));
             }
             else if (user.getId() == taskRequestDTO.getExecutorId()) {
-                task = taskService.get(taskRequestDTO.getId());
-                Status status = Status.valueOf(taskRequestDTO.getStatus());
-                if (!task.getStatus().equals(status)) {
-                    task.setStatus(status);
-                    taskService.update(task);
-                }
+                taskService.updateById(taskRequestDTO.getId(), Status.valueOf(taskRequestDTO.getStatus()));
                 return ResponseEntity.ok(new MessageResponseDTO(STATUS_UPDATED));
             }
             else return ResponseEntity.status(HttpServletResponse.SC_BAD_REQUEST).body(new MessageResponseDTO(NOT_HAVE_PERMIT));
@@ -110,8 +122,8 @@ public class TaskController {
                     user,
                     executor);
 
-            TaskResponseDTO taskResponseDTO = TaskResponseMapper.INSTANCE.taskToTaskResponseDTO(taskService.create(task));
-            return ResponseEntity.ok(taskResponseDTO);
+            TaskWithUserInfoResponseDTO taskWithUserInfoResponseDTO = TaskWithUserInfoResponseMapper.INSTANCE.taskToTaskWithUserInfoResponseDTO(taskService.create(task));
+            return ResponseEntity.ok(taskWithUserInfoResponseDTO);
         }
     }
     @Operation(
@@ -138,7 +150,7 @@ public class TaskController {
             summary = "Получение заданий, где автор с указанным id.",
             description = "Доступно всем залогиненным пользователям.")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", content = { @Content(array = @ArraySchema(schema = @Schema(implementation = TaskResponseDTO.class)), mediaType = "application/json") }) })
+            @ApiResponse(responseCode = "200", content = { @Content(array = @ArraySchema(schema = @Schema(implementation = TaskWithUserInfoResponseDTO.class)), mediaType = "application/json") }) })
     @GetMapping("/get-by-author")
     public ResponseEntity<?> getTasksByAuthor(@RequestParam("id") long id,
                                               @RequestParam("page") int pageIndex,
@@ -152,7 +164,7 @@ public class TaskController {
             summary = "Получение заданий, где есть исполнитель с указанным id.",
             description = "Доступно всем залогиненным пользователям.")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", content = { @Content(array = @ArraySchema(schema = @Schema(implementation = TaskResponseDTO.class)), mediaType = "application/json") }) })
+            @ApiResponse(responseCode = "200", content = { @Content(array = @ArraySchema(schema = @Schema(implementation = TaskWithUserInfoResponseDTO.class)), mediaType = "application/json") }) })
     @GetMapping("/get-by-executor")
     public ResponseEntity<?> getTasksByExecutor(@RequestParam(name = "id") long id,
                                                 @RequestParam("page") int pageIndex,

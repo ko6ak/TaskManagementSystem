@@ -39,14 +39,20 @@ public class TaskManagementSystemApplication {
 		Task task1 = new Task("Task#1", "first task", Status.IN_PROGRESS, Priority.LOW, ivan, serg);
 		Task task2 = new Task("Task#2", "second task", Status.IN_DELAY, Priority.MIDDLE, ivan, lena);
 		Task task3 = new Task("Task#3", "third task", Status.FINISHED, Priority.HIGH, lena, lena);
+		Task task4 = new Task("Task#4", "four task", Status.FINISHED, Priority.HIGH, serg, lena);
+		Task task5 = new Task("Task#5", "five task", Status.FINISHED, Priority.HIGH, serg, lena);
 
 		taskService.create(task1);
 		taskService.create(task2);
 		taskService.create(task3);
+		taskService.create(task4);
+		taskService.create(task5);
 
 		Comment comment = new Comment("Good job, team!", ivan, task3);
+		Comment comment1 = new Comment("Good job, team!", ivan, task3);
 
 		commentService.create(comment);
+		commentService.create(comment1);
 	}
 
 }

@@ -33,7 +33,7 @@ public class CommentController {
     @PostMapping("/add")
     public ResponseEntity<MessageResponseDTO> add(@RequestBody CommentRequestDTO commentRequestDTO) {
         User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        Task task = taskService.get(commentRequestDTO.getTaskId());
+        Task task = taskService.getRef(commentRequestDTO.getTaskId());
         commentService.create(new Comment(commentRequestDTO.getMessage(), user, task));
         return ResponseEntity.ok(new MessageResponseDTO(DONE));
     }
